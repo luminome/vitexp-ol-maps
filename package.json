@@ -10,11 +10,14 @@
   },
   "devDependencies": {
     "nodemon": "^3.0.1",
+    "sass": "^1.70.0",
     "vite": "^5.0.2"
   },
   "dependencies": {
+    "build": "^0.1.4",
     "express": "^4.18.2",
+    "ol": "^8.2.0",
     "sac-utilities": "github:luminome/sac-utilities",
-    "vite-express": "*"
+    "vite-express": "^0.11.1"
   }
 }

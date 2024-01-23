@@ -1,0 +1,38 @@
+:root {
+    font-family: monospace;
+    font-weight: 400;
+}
+
+body {
+    margin:0;
+    padding:0;
+}
+
+#map{
+    width:80%;
+    height:100vh;
+    background: none;
+}
+
+svg{
+    background-color: rgba(0, 255, 255, 0.25);
+}
+
+.svg-layer{
+    // border:4px red solid;
+}
+
+#container{
+    display:flex;
+}
+
+#map-output{
+    margin-left:8px;
+    font-size: 0.75em;
+    line-height: 1.5em;
+}
+
+.ol-layer{
+    // opacity:0.6;
+    
+}
