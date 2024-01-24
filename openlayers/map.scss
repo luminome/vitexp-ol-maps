@@ -1,21 +1,29 @@
 :root {
-    font-family: monospace;
+    // font-family: monospace;
+    font-family: Helvetica, Arial, sans-serif;
     font-weight: 400;
 }
 
 body {
     margin:0;
     padding:0;
+    overflow:hidden;
+}
+
+#text-metric{
+    display:block;
+    opacity:0;
+    width:min-content;
 }
 
 #map{
-    width:80%;
-    height:100vh;
+    width:inherit;
+    height:inherit;
     background: none;
 }
 
 svg{
-    background-color: rgba(0, 255, 255, 0.25);
+    background-color: rgba(60, 124, 0, 0.25);
 }
 
 .svg-layer{
@@ -23,7 +31,9 @@ svg{
 }
 
 #container{
-    display:flex;
+    width:100vw;
+    height:100vh;
+    // display:flex;
 }
 
 #map-output{

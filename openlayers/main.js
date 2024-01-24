@@ -54,18 +54,29 @@ const layers = [
 //   }),
 // });
 
+
 // org 10.200007651917469,63.24999584816791
 // bottom-right 10.550003247862797,62.94684875611122
+const doc = {};
 
-const org = [10.26, 63.1];
-const ext = [9.8, 62.75, 11, 63.5];
+[doc.w, doc.h] = [
+    window.visualViewport ? window.visualViewport.width : window.innerWidth,
+    window.visualViewport ? window.visualViewport.height: window.innerHeight
+]
+
+const ext = [9.6, 62.75, 11.2, 63.5];
 const box = [10.2, 62.95, 10.55, 63.27];
+
+const org = [
+    box[0]+((box[2]-box[0])/2), 
+    box[3]-((box[3]-box[1])/2)
+];
 
 const bbox = {
     x:box[0],
     y:box[3],
-    w_deg:UT.round_to_dec(box[2]-box[0],3),
-    h_deg:UT.round_to_dec((box[1]-box[3])*-1,3),
+    w_deg:UT.round_to_dec(box[2]-box[0], 2),
+    h_deg:UT.round_to_dec((box[1]-box[3])*-1, 2),
     w_m:null,
     h_m:null
 }
@@ -75,22 +86,26 @@ const dg = fromLonLat([bbox.x + bbox.w_deg, bbox.y + (bbox.h_deg)]);
 bbox.w_m = Math.round(dg[0]-og[0]);
 bbox.h_m = Math.round((og[1]-dg[1])*-1);
 
-
-
+const container = document.querySelector('#container');
+const textmetric = document.querySelector('#text-metric');
 const output = document.querySelector('#map-output');
 const zoomlevel = document.querySelector('#map-zoom');
 const map_dom = document.querySelector('#map');
 
+container.style.height = `${doc.h}px`;
+
+
 map_dom.addEventListener('mouseup', function(){
     const el = document.createElement('div');
     el.innerHTML = `${coord}`;
+    console.log(coord);
     output.prepend(el);
 });
 
 
 let map_svg;
 let coord = [];
-let zoom;
+let zoom, rotation;
 
 /*
 top [
@@ -177,6 +192,12 @@ svg_inline.appendChild(svg_defs);
 svgContainer.appendChild(svg_inline);
 
 
+const measuretext = (txt) => {
+    textmetric.innerHTML = txt;
+    const bbox = textmetric.getBoundingClientRect();
+    return [bbox.width, bbox.height];
+}
+
 
 const map_to = (coord, target) => {
     const ktg = fromLonLat(coord);
@@ -201,16 +222,28 @@ const key_obj_types = {
         zoom:{
             flag:'always',
             min:13,
-            max:10
+            max:10,
+            hide:13
         },
         opacity:0.5
     },
     beat_mark:{
         icon: 'beat-mark-symbol',
+        rotates: true,
         icon_scale: 0.25,
         zoom:{
             flag:'bracket',
-            min:12
+            min:13
+        },
+        opacity:1.0
+    },
+    parking:{
+        icon: 'parking-symbol',
+        rotates: true,
+        icon_scale: 0.35,
+        zoom:{
+            flag:'bracket',
+            min:13
         },
         opacity:1.0
     }
@@ -222,32 +255,28 @@ const map_key_obj = (type, name, coord, significance=1) => {
 
         const zt = UT.norm(o.zoom.min, z, o.zoom.max);
         if(o.zoom.flag === 'always'){
-            UT.setAttrs(o.svg, {opacity:zt});
+            UT.setAttrs(o.svg, {
+                opacity:zt,
+                visibility:['visible','hidden'][+(o.zoom.hide < z)]
+            });
         }
-
         if(o.zoom.flag === 'bracket'){
             UT.setAttrs(o.symbol, {visibility:['visible','hidden'][+(o.zoom.min > z)]});
         }
-        
 
-        if(o.label !== null){
-            const bbox = o.label.getBBox();
-            if(bbox.width === 0) return;
-            const px_scale = 256 * (o.icon_scale*significance);
-            const sca = ((px_scale*1.5)/bbox.width);
-            UT.setAttrs(o.label,{
-                transform: `scale(${sca},${sca})`
+        if(o.rotates){
+            const r = rotation * (180 / Math.PI);
+            UT.setAttrs(o.svg,{
+                transform: `translate(${o.screen_coord[0]},${o.screen_coord[1]}) rotate(${-r})`
             })
         }
-
-
-
     }
 
     const draw = () => {
         const ktg = fromLonLat(o.coord);
         const d = [ktg[0] - og[0], (ktg[1] - og[1])*-1];
         const px_scale = 256 * (o.icon_scale*significance);
+        o.screen_coord = d;
 
         UT.setAttrs(o.symbol,{
             x:-px_scale,
@@ -257,6 +286,15 @@ const map_key_obj = (type, name, coord, significance=1) => {
             opacity:o.opacity
         })
 
+        if(o.label !== null){
+            let [w,h] = measuretext(o.label.innerHTML);
+            const px_scale = 256 * (o.icon_scale*significance);
+            const sca = ((px_scale*1.5)/w);
+            UT.setAttrs(o.label,{
+                transform: `scale(${sca},${sca})`
+            })
+        }
+        
         UT.setAttrs(o.svg,{
             transform: `translate(${d[0]},${d[1]})`
         })
@@ -275,11 +313,11 @@ const map_key_obj = (type, name, coord, significance=1) => {
                 'fill':'slategray',
                 'text-anchor':'middle',
                 'dominant-baseline':'middle',
-                'font-kerning': 'auto',
-                'font-family':`'Helvetica', 'Arial', sans-serif;`
+                'font-kerning': 'auto'
             });
-            o.label.innerHTML = name.toUpperCase();
             o.svg.appendChild(o.label);
+            o.label.innerHTML = name.toUpperCase();
+            
         }
     }
 
@@ -288,12 +326,16 @@ const map_key_obj = (type, name, coord, significance=1) => {
         symbol: null,
         label: null,
         coord: coord,
-        setZoom
+        screen_coord: null,
+        setZoom,
+        draw,
+        init
     }
 
     init();
     draw();
-
+    // setZoom();
+    
     return o;
 }
 
@@ -309,13 +351,8 @@ const svg_loaded = () => {
     // map_svg = document.querySelector('svg');
     console.log('did a load');
 
-
-
-
-
     Object.entries(places).forEach(([k,v])=>{
         console.log(k,v)
-        // const p = UT.createSVGElement('circle',{r:10, fill:'black', stroke:'black', id:k});
         const p = UT.createSVGElement('use',{href:'#zone-symbol', id:k});
         svg_inline.appendChild(p);
         map_to(v,p);
@@ -328,33 +365,22 @@ const svg_loaded = () => {
         map_key_obj('zone','bua',[10.489479106438273,62.98251417251333],3),
         map_key_obj('beat_mark','lundamo-2',[10.268060595590706,63.14988589451647]),
         map_key_obj('beat_mark','lundamo-1',[10.264246254065357,63.14725628154966]),
+        map_key_obj('parking','lundamo-park',[
+            10.266061502288128,
+            63.148080159797956
+        ]),
     ]
 
     zones.forEach((zone) => {
         svg_inline.appendChild(zone.svg);
         map_key_elements.push(zone);
-    })
-    // const kval = map_key_obj('zone','kvål',[10.281673755208665,63.22715537612237],5);
-    // const lundamo = map_key_obj('zone','lundamo',[10.264492888245316,63.14847932963741],3);
-    // const home = map_key_obj('zone','home',[10.336120326035664,63.01950030824776],7);
-    // svg_inline.appendChild(kval.svg);
-    // svg_inline.appendChild(lundamo.svg);
-    // svg_inline.appendChild(home.svg);
-
-    // map_key_elements.push(kval);
-    // map_key_elements.push(lundamo);
-    // map_key_elements.push(home);
-    
-    // console.log(kval);
-
-
-
-    // const tgt = map_svg.querySelector('#bus');
-    // map_to(bua_bridge,tgt);
+    });
 
 }
 
-
+const update_layer_one = async () => {
+    map_key_elements.forEach((mke) => mke.setZoom(zoom));
+}
 
 const init_map = () => {
 
@@ -366,7 +392,7 @@ const init_map = () => {
             center: org,
             extent: ext,
             projection: useGeographic(),
-            zoom: 2,
+            zoom: 10,
         }),
     });
     
@@ -390,9 +416,12 @@ const init_map = () => {
                 );
                 svgContainer.style.transform = cssTransform;
                 zoom = frameState.viewState.zoom;
-                zoomlevel.innerHTML = zoom;
+                rotation = frameState.viewState.rotation;
+                update_layer_one();
+                // zoomlevel.innerHTML = zoom;
 
-                map_key_elements.forEach((mke) => mke.setZoom(zoom));
+                // 
+                
                 return svgContainer;
             },
         })
@@ -400,6 +429,7 @@ const init_map = () => {
 
     map.on('pointermove', function(evt){
         coord = evt.coordinate;
+        // map.updateSize();
     })
     
     const ref_u = map.getView().getProjection().getUnits();
@@ -410,7 +440,7 @@ const init_map = () => {
         width:bbox.w_m,
         height:bbox.h_m
     })
-    
+
     const logo = UT.createSVGElement('use',{href:'#nfc-logo-symbol', id:'logo'});
     
 
@@ -436,15 +466,15 @@ const start_simple = async () => {
         '/icons/nfc-logo.svg']);
     console.log(res);
     res.forEach((r) => svg_defs.appendChild(r));
-    init_map();
     
+    init_map();
 }
 
 
 start_simple();
 
 
-
+document.addEventListener("DOMContentLoaded", () => {window.scrollTo(0,0)});
 
 
 

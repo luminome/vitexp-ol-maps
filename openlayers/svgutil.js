@@ -1,8 +1,6 @@
 import "./path-data-polyfill.js";
 import { round_to_dec, loader, norm, interp, setAttrs, createSVGElement, fsqrt } from 'sac-utilities';
 
-
-
 const build = (symbols, autoscale=1.0) => {
     const result_svgs = [], names = [], staging = document.createElement('div');
     document.body.appendChild(staging);
@@ -14,7 +12,7 @@ const build = (symbols, autoscale=1.0) => {
 
     let svg_index = 0;
     staging.childNodes.forEach((c,i) => {
-        console.log(c);
+        // console.log(c);
         if(c.nodeName === 'svg'){
             const dims = [parseInt(c.getAttribute('width')), parseInt(c.getAttribute('height'))];
             const g_copy = createSVGElement('symbol', {
